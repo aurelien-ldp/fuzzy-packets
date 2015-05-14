@@ -1,2 +1,2 @@
 # fuzzy-packets
-A network communication tool using packets and UDP sockets.
+A network UDP communication tool with TCP connection using SDL_Net.
