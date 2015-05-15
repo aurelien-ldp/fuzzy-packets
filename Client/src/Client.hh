@@ -4,6 +4,8 @@
 # include <SDL2/SDL_Net.h>
 # include <iostream>
 # include <string>
+# include "Common/UDP.hh"
+# include "Common/TCP.hh"
 
 # define PACKET_SIZE    512
 
@@ -18,6 +20,23 @@ public:
             exit(1);
         }
 
+        // UDP for the rest
+        if ((_socket = SDLNet_UDP_Open(0)) == NULL)
+        {
+            std::cerr << "SDL_Net_UDP_Open: " << SDLNet_GetError() << std::endl;
+            exit(1);
+        }
+        if (SDLNet_ResolveHost(&_servAddr, host, _port) == -1)
+    	{
+    		fprintf(stderr, "SDLNet_ResolveHost(%s %d): %s\n", host, port, SDLNet_GetError());
+    		exit(EXIT_FAILURE);
+    	}
+        if ((_packet = SDLNet_AllocPacket(PACKET_SIZE)) == NULL)
+        {
+            std::cerr << "SDL_Net_AllocPacket: " << SDLNet_GetError() << std::endl;
+            exit(1);
+        }
+
         // TCP for connection
         if (SDLNet_ResolveHost(&_servAddr, host, port) < 0)
         {
@@ -29,18 +48,26 @@ public:
             std::cerr << "SDLNet_TCP_Open: " << SDLNet_GetError() << std::endl;
             exit(1);
         }
+        // get port for UDP
+        char buffer[16];
+        if (receiveTCP(_tcpSocket, buffer, 16))
+        {
+            _port = SDLNet_Read16(buffer);
+            std::cout << "New port: " << _port << std::endl;
+        }
+        IPaddress *address;
 
-        // UDP for the rest
-        if ((_socket = SDLNet_UDP_Open(0)) == NULL)
-        {
-            std::cerr << "SDL_Net_UDP_Open: " << SDLNet_GetError() << std::endl;
-            exit(1);
-        }
-        if ((_packet = SDLNet_AllocPacket(PACKET_SIZE)) == NULL)
-        {
-            std::cerr << "SDL_Net_AllocPacket: " << SDLNet_GetError() << std::endl;
-            exit(1);
-        }
+        address = SDLNet_UDP_GetPeerAddress(_socket, -1);
+        this->port = address->port;
+        this->host = address->host;
+        char data[16];
+        SDLNet_Write16(this->port, data);
+        sendTCP(data, _tcpSocket);
+        std::cout << "Sending: " << data << std::endl;
+        char data2[32];
+        SDLNet_Write32(this->host, data2);
+        std::cout << "Sending: " << data2 << std::endl;
+        sendTCP(data2, _tcpSocket);
     }
     ~Client()
     {
@@ -54,24 +81,16 @@ public:
     }
     bool    sendPacket(const char* data)
     {
-        strcpy((char *)_packet->data, data);
-
-        _packet->len = strlen(data) + 1;
-        if (SDLNet_UDP_Send(_socket, -1, _packet) == 0)
-            return (false);
-        return (true);
+        return (sendUDP(_socket, _packet, data, _servAddr.host, _port));
     }
     bool    receivePacket(void)
     {
-        if (SDLNet_UDP_Recv(_socket, _packet))
-        {
-            printf("UDP Packet incoming\n");
-			printf("\tData:    %s\n", (char *)_packet->data);
-            return (true);
-        }
-        return (false);
+        return (receiveUDP(_socket, _packet));
     }
+    Uint16      port;
+    Uint32      host;
 private:
+    Uint16      _port;
     UDPsocket   _socket;
     TCPsocket   _tcpSocket;
 	IPaddress   _servAddr;

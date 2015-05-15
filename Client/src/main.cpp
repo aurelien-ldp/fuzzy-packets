@@ -11,5 +11,7 @@ int     main()
     client.sendPacket(str);
     client.sendPacket(str);
     client.sendPacket(str);
-    client.receivePacket();
+    while (1)
+        client.receivePacket();
+    return (0);
 }

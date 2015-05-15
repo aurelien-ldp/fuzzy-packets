@@ -2,7 +2,6 @@
 #include <pthread.h>
 #include <unistd.h>
 
-// WILL be use for thread
 static void*    connection_wrapper(void *arg)
 {
     Server*     server_ptr = (Server *)arg;
@@ -17,22 +16,28 @@ Server::Server(Uint16 port)
     if(SDLNet_Init()==-1)
     {
         std::cerr << "SDLNet_Init: " << SDLNet_GetError() << std::endl;
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     // TCP for client connection
     if (SDLNet_ResolveHost(&_ipaddress, NULL, port) < 0)
     {
         std::cerr << "SDLNet_ResolveHost: " << SDLNet_GetError() << std::endl;
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     if ((_tcpSocket = SDLNet_TCP_Open(&_ipaddress)) == NULL)
     {
         std::cerr << "SDLNet_TCP_Open: " << SDLNet_GetError() << std::endl;
-        exit(1);
+        exit(EXIT_FAILURE);
     }
+
+    // UDP for the rest
+    if (!(_socket = SDLNet_UDP_Open(_port)))
+	{
+		std::cerr << "SDLNet_UDP_Open: " << SDLNet_GetError() << std::endl;
+		exit(EXIT_FAILURE);
+	}
     // Thread the waitConnection()'s loop
-    //pthread_create(&_thread, NULL, connection_wrapper, this);
-    waitConnection();   // temporary
+    pthread_create(&_thread, NULL, connection_wrapper, this);
 }
 
 Server::~Server()
@@ -51,19 +56,26 @@ Server::~Server()
 //
 void    Server::waitConnection(void)
 {
-    char        buffer[16];
-    IPaddress*  _remoteIP;
-    TCPsocket   _tcpClientSocket;
+    IPaddress*  remoteIP;
 
     while (1)
     {
         if ((_tcpClientSocket = SDLNet_TCP_Accept(_tcpSocket)))
         {
-            if ((_remoteIP = SDLNet_TCP_GetPeerAddress(_tcpClientSocket)))
+            if ((remoteIP = SDLNet_TCP_GetPeerAddress(_tcpClientSocket)))
             {
-                std::cout << "Host connected: " << SDLNet_Read32(&_remoteIP->host) << "\t" << SDLNet_Read16(&_remoteIP->port) << std::endl;
-                _clients.push_back(new Client);
+                std::cout << "Host connected: " << SDLNet_Read32(&remoteIP->host) << "\t" << SDLNet_Read16(&remoteIP->port) << std::endl;
+                _clients.push_back(new Client(remoteIP, _port));
                 std::cout << "New client saved, nb of client: " << _clients.size() << std::endl;
+                std::cout << "port of the new socket: " << _clients.back()->port << std::endl;
+                char data[16];
+                SDLNet_Write16(_clients.back()->port, data);
+                sendTCP(data, _tcpClientSocket);
+                receiveTCP(_tcpClientSocket, data, 16);
+                _clients.back()->clientPort = SDLNet_Read16(data);
+                char data2[32];
+                receiveTCP(_tcpClientSocket, data2, 32);
+                _clients.back()->clientHost = SDLNet_Read16(data2);
             }
             else
                 std::cerr << "SDLNet_TCP_GetPeerAddress: " << SDLNet_GetError() << std::endl;
@@ -75,12 +87,16 @@ void    Server::waitConnection(void)
 
 void    Server::listen(void)
 {
+    int i;
     std::cout << "Listening..." << std::endl;
     while (1)
     {
-        while (!_clients.empty())
+        i = 0;
+        while (i < _clients.size())
         {
-            _clients[0]->receivePacket();
+            _clients[i]->receivePacket();
+            _clients[i++]->sendPacket("Test");
         }
+        usleep(10);
     }
 }

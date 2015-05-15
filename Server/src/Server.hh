@@ -5,6 +5,8 @@
 # include <iostream>
 # include <vector>
 # include "Client.hh"
+# include "Common/TCP.hh"
+# include "Common/UDP.hh"
 
 # define PACKET_SIZE     16
 
@@ -14,14 +16,15 @@ public:
             Server(Uint16 port);
             ~Server();
     void    waitConnection(void);
-    bool    receivePacket(void);
-    bool    sendPacket(const char* data);
     void    listen(void);
+    void    sendPort(Uint16 port);
 private:
     Uint16      _port;
+    UDPsocket   _socket;
     TCPsocket   _tcpSocket;
     IPaddress   _ipaddress;
     pthread_t   _thread;
+    TCPsocket   _tcpClientSocket;
     std::vector <Client *>_clients;
 };
 
