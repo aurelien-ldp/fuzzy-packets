@@ -18,16 +18,7 @@ Server::Server(Uint16 port)
         exit(EXIT_FAILURE);
     }
     // TCP for client connection
-    if (SDLNet_ResolveHost(&_ipaddress, NULL, port) < 0)
-    {
-        std::cerr << "SDLNet_ResolveHost: " << SDLNet_GetError() << std::endl;
-        exit(EXIT_FAILURE);
-    }
-    if ((_tcpSocket = SDLNet_TCP_Open(&_ipaddress)) == NULL)
-    {
-        std::cerr << "SDLNet_TCP_Open: " << SDLNet_GetError() << std::endl;
-        exit(EXIT_FAILURE);
-    }
+    _tcpSocket = TCPSocket(NULL, port);
 
     // UDP for the rest
     if (!(_socket = SDLNet_UDP_Open(_port)))
@@ -41,7 +32,7 @@ Server::Server(Uint16 port)
 
 Server::~Server()
 {
-    _thread.join();
+    _thread->join();
     while (!_clients.empty())
     {
         delete _clients.back();
