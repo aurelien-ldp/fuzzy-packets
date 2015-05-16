@@ -15,22 +15,25 @@ Client::Client(IPaddress *cipaddress, Uint16 serverPort)
 
     if (!(_socket = SDLNet_UDP_Open(0)))
 	{
-		fprintf(stderr, "SDLNet_UDP_Open: %s\n", SDLNet_GetError());
+		std::cerr << "SDLNet_UDP_Open: " << SDLNet_GetError() << std::endl;
 		exit(EXIT_FAILURE);
 	}
     IPaddress *address;
     address = SDLNet_UDP_GetPeerAddress(_socket, -1);
     this->port = address->port;
-    if ((_packet = SDLNet_AllocPacket(512)) == NULL)
+    if ((_packet = SDLNet_AllocPacket(PACKET_SIZE)) == NULL)
     {
         std::cerr << "SDLNet_AllocPacket: " << SDLNet_GetError() << std::endl;
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 }
 
 Client::~Client()
 {
-
+    SDLNet_UDP_Close(_socket);
+    _socket = NULL;
+    SDLNet_FreePacket(_packet);
+    _packet = NULL;
 }
 
 bool    Client::receivePacket(void)

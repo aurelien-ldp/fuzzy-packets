@@ -1,13 +1,12 @@
 #include "Server.hh"
-#include <pthread.h>
 #include <unistd.h>
 
-static void*    connection_wrapper(void *arg)
+static void     *connection_wrapper(void *arg)
 {
     Server*     server_ptr = (Server *)arg;
 
     server_ptr->waitConnection();
-    return (NULL);
+    return (nullptr);
 }
 
 Server::Server(Uint16 port)
@@ -37,11 +36,12 @@ Server::Server(Uint16 port)
 		exit(EXIT_FAILURE);
 	}
     // Thread the waitConnection()'s loop
-    pthread_create(&_thread, NULL, connection_wrapper, this);
+    _thread = new std::thread(connection_wrapper, this);
 }
 
 Server::~Server()
 {
+    _thread.join();
     while (!_clients.empty())
     {
         delete _clients.back();
@@ -54,7 +54,7 @@ Server::~Server()
 // Wait for a new client connection
 // and add it to the clients vector
 //
-void    Server::waitConnection(void)
+void    *Server::waitConnection(void)
 {
     IPaddress*  remoteIP;
 
@@ -68,13 +68,13 @@ void    Server::waitConnection(void)
                 _clients.push_back(new Client(remoteIP, _port));
                 std::cout << "New client saved, nb of client: " << _clients.size() << std::endl;
                 std::cout << "port of the new socket: " << _clients.back()->port << std::endl;
-                char data[16];
+                char data[2];
                 SDLNet_Write16(_clients.back()->port, data);
-                sendTCP(data, _tcpClientSocket);
-                receiveTCP(_tcpClientSocket, data, 16);
+                while (!sendTCP(data, _tcpClientSocket));
+                while (!receiveTCP(_tcpClientSocket, data, 2));
                 _clients.back()->clientPort = SDLNet_Read16(data);
-                char data2[32];
-                receiveTCP(_tcpClientSocket, data2, 32);
+                char data2[4];
+                while (!receiveTCP(_tcpClientSocket, data2, 4));
                 _clients.back()->clientHost = SDLNet_Read16(data2);
             }
             else
@@ -83,6 +83,7 @@ void    Server::waitConnection(void)
         }
         usleep(200);
     }
+    return (NULL);
 }
 
 void    Server::listen(void)
