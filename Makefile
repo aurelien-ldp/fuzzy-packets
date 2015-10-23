@@ -6,7 +6,7 @@ SRCS	= 	Server/main.cpp		\
 			Common/UDP.cpp		\
 			Common/TCP.cpp
 
-SRCC	=	CLient/main.cpp		\
+SRCC	=	Client/main.cpp		\
 			Client/Client.cpp	\
 			Common/UDP.cpp		\
 			Common/TCP.cpp
@@ -15,9 +15,9 @@ OBJS	=	$(SRCS:.cpp=.o)
 
 OBJC	=	$(SRCC:.cpp=.o)
 
-CXXFLAGS=	-I. -W -Wall -Wextra -std=c++11
+CXXFLAGS=	-I. -W -Wall -Wextra -std=c++11 $(shell sdl2-config --cflags)
 
-LDFLAGS	=	-lSDL2_Net
+LDFLAGS	=	$(shell sdl2-config --libs) -lSDL2_net
 
 all:		$(OBJS) $(OBJC)
 	$(CXX) -o mserver $(OBJS) $(LDFLAGS)

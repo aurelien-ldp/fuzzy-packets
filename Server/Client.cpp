@@ -1,9 +1,11 @@
 #include "Client.hh"
 #include <unistd.h>
 
-static int client_counter(void)
+static int client_counter(bool deleteOne)
 {
     static int c = 1;
+    if (deleteOne)
+      c--;
     return (c++);
 }
 
@@ -11,7 +13,7 @@ Client::Client(IPaddress *cipaddress, Uint16 serverPort)
 {
     _ipaddress = cipaddress;
     _serverPort = serverPort;
-    _clientNb = client_counter();
+    _clientNb = client_counter(false);
 
     if (!(_socket = SDLNet_UDP_Open(0)))
 	{
@@ -34,6 +36,7 @@ Client::~Client()
     _socket = NULL;
     SDLNet_FreePacket(_packet);
     _packet = NULL;
+    (void)clientCounter(true)
 }
 
 bool    Client::receivePacket(void)

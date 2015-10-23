@@ -1,7 +1,7 @@
 #ifndef CLIENT_HH_
 # define CLIENT_HH_
 
-# include <SDL2/SDL_Net.h>
+# include <SDL2/SDL_net.h>
 # include <iostream>
 # include <string>
 # include "Common/UDP.hh"

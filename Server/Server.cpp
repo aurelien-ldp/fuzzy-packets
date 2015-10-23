@@ -41,7 +41,7 @@ Server::Server(Uint16 port)
 
 Server::~Server()
 {
-    _thread.join();
+    _thread->join();
     while (!_clients.empty())
     {
         delete _clients.back();

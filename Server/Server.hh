@@ -1,7 +1,7 @@
 #ifndef SERVER_HH_
 # define SERVER_HH_
 
-# include <SDL2/SDL_Net.h>
+# include <SDL2/SDL_net.h>
 # include <iostream>
 # include <vector>
 # include <thread>

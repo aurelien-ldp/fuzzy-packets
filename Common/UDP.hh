@@ -1,7 +1,7 @@
 #ifndef UDP_HH_
 # define UDP_HH_
 
-# include <SDL2/SDL_Net.h>
+# include <SDL2/SDL_net.h>
 # include <string>
 # include <iostream>
 
